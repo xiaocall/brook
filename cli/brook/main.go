@@ -19,8 +19,8 @@ var debugAddress string
 func main() {
 	app := cli.NewApp()
 	app.Name = "Brook"
-	app.Version = "20171113"
-	app.Usage = "A Cross-Platform Proxy Software"
+	app.Version = "20180909"
+	app.Usage = "A Cross-Platform Proxy/VPN Software"
 	app.Author = "Cloud"
 	app.Email = "cloud@txthinking.com"
 	app.Flags = []cli.Flag{
@@ -56,7 +56,7 @@ func main() {
 				},
 				cli.IntFlag{
 					Name:  "tcpDeadline",
-					Value: 60,
+					Value: 0,
 					Usage: "connection deadline time (s)",
 				},
 				cli.IntFlag{
@@ -91,7 +91,7 @@ func main() {
 				},
 				cli.IntFlag{
 					Name:  "tcpDeadline",
-					Value: 60,
+					Value: 0,
 					Usage: "connection deadline time (s)",
 				},
 				cli.IntFlag{
@@ -151,7 +151,7 @@ func main() {
 				},
 				cli.IntFlag{
 					Name:  "tcpDeadline",
-					Value: 60,
+					Value: 0,
 					Usage: "connection deadline time (s)",
 				},
 				cli.IntFlag{
@@ -181,6 +181,168 @@ func main() {
 					return brook.RunClientAsHTTP(c.String("listen"), c.String("ip"), c.String("server"), c.String("password"), c.Int("tcpTimeout"), c.Int("tcpDeadline"), c.Int("udpDeadline"), c.Int("udpSessionTime"))
 				}
 				return brook.RunClient(c.String("listen"), c.String("ip"), c.String("server"), c.String("password"), c.Int("tcpTimeout"), c.Int("tcpDeadline"), c.Int("udpDeadline"), c.Int("udpSessionTime"))
+			},
+		},
+		cli.Command{
+			Name:  "tunnel",
+			Usage: "Run as tunnel mode",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "listen, l",
+					Usage: "Client listen address, like: 127.0.0.1:1080",
+				},
+				cli.StringFlag{
+					Name:  "to, t",
+					Usage: "Tunnel to where, like: 8.8.8.8:53",
+				},
+				cli.StringFlag{
+					Name:  "server, s",
+					Usage: "Server address, like: 1.2.3.4:1080",
+				},
+				cli.StringFlag{
+					Name:  "password, p",
+					Usage: "Server password",
+				},
+				cli.IntFlag{
+					Name:  "tcpTimeout",
+					Value: 60,
+					Usage: "connection tcp keepalive timeout (s)",
+				},
+				cli.IntFlag{
+					Name:  "tcpDeadline",
+					Value: 0,
+					Usage: "connection deadline time (s)",
+				},
+				cli.IntFlag{
+					Name:  "udpDeadline",
+					Value: 60,
+					Usage: "connection deadline time (s)",
+				},
+			},
+			Action: func(c *cli.Context) error {
+				if c.String("listen") == "" || c.String("to") == "" || c.String("server") == "" || c.String("password") == "" {
+					cli.ShowCommandHelp(c, "tunnel")
+					return nil
+				}
+				if debug {
+					enableDebug()
+				}
+				return brook.RunTunnel(c.String("listen"), c.String("to"), c.String("server"), c.String("password"), c.Int("tcpTimeout"), c.Int("tcpDeadline"), c.Int("udpDeadline"))
+			},
+		},
+		cli.Command{
+			Name:  "tproxy",
+			Usage: "Run as tproxy mode, transparent proxy, only works on Linux",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "listen, l",
+					Usage: "Client listen address, like: 127.0.0.1:1080",
+				},
+				cli.StringFlag{
+					Name:  "server, s",
+					Usage: "Server address, like: 1.2.3.4:1080",
+				},
+				cli.StringFlag{
+					Name:  "password, p",
+					Usage: "Server password",
+				},
+				cli.IntFlag{
+					Name:  "tcpTimeout",
+					Value: 60,
+					Usage: "connection tcp keepalive timeout (s)",
+				},
+				cli.IntFlag{
+					Name:  "tcpDeadline",
+					Value: 0,
+					Usage: "connection deadline time (s)",
+				},
+				cli.IntFlag{
+					Name:  "udpDeadline",
+					Value: 60,
+					Usage: "connection deadline time (s)",
+				},
+			},
+			Action: func(c *cli.Context) error {
+				if c.String("listen") == "" || c.String("server") == "" || c.String("password") == "" {
+					cli.ShowCommandHelp(c, "tproxy")
+					return nil
+				}
+				if debug {
+					enableDebug()
+				}
+				return brook.RunTproxy(c.String("listen"), c.String("server"), c.String("password"), c.Int("tcpTimeout"), c.Int("tcpDeadline"), c.Int("udpDeadline"))
+			},
+		},
+		cli.Command{
+			Name:  "vpn",
+			Usage: "Run as VPN mode",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "listen, l",
+					Usage: "Client listen address, must use 127.0.0.1, like: 127.0.0.1:1080",
+				},
+				cli.StringFlag{
+					Name:  "server, s",
+					Usage: "Server address, must use IP, like: 1.2.3.4:1080",
+				},
+				cli.StringFlag{
+					Name:  "password, p",
+					Usage: "Server password",
+				},
+				cli.IntFlag{
+					Name:  "tcpTimeout",
+					Value: 60,
+					Usage: "connection tcp keepalive timeout (s)",
+				},
+				cli.IntFlag{
+					Name:  "tcpDeadline",
+					Value: 0,
+					Usage: "connection deadline time (s)",
+				},
+				cli.IntFlag{
+					Name:  "udpDeadline",
+					Value: 60,
+					Usage: "connection deadline time (s)",
+				},
+				cli.IntFlag{
+					Name:  "udpSessionTime",
+					Value: 60,
+					Usage: "udp session time (s), in most cases need this",
+				},
+				cli.StringFlag{
+					Name:  "tunDevice",
+					Usage: "tun name",
+					Value: "tun0",
+				},
+				cli.StringFlag{
+					Name:  "tunIP",
+					Usage: "tun IP",
+					Value: "10.9.9.2",
+				},
+				cli.StringFlag{
+					Name:  "tunGateway",
+					Usage: "tun gateway",
+					Value: "10.9.9.1",
+				},
+				cli.StringFlag{
+					Name:  "tunMask",
+					Usage: "tun mask",
+					Value: "255.255.255.0",
+				},
+				cli.StringFlag{
+					Name:  "defaultGateway",
+					Usage: "Your default gateway, Only needed on windows that are not utf8 encoded.",
+				},
+			},
+			Action: func(c *cli.Context) error {
+				if c.String("listen") == "" || c.String("server") == "" || c.String("password") == "" {
+					cli.ShowCommandHelp(c, "vpn")
+					return nil
+				}
+				if debug {
+					enableDebug()
+				}
+				return brook.RunVPN(c.String("listen"), c.String("server"), c.String("password"), c.Int("tcpTimeout"), c.Int("tcpDeadline"), c.Int("udpDeadline"), c.Int("udpSessionTime"), c.String("tunDevice"), c.String("tunIP"), c.String("tunGateway"), c.String("tunMask"), c.String("defaultGateway"))
 			},
 		},
 		cli.Command{
@@ -571,7 +733,7 @@ func main() {
 			Usage: "Run as multiple relays mode",
 			Flags: []cli.Flag{
 				cli.StringSliceFlag{
-					Name:  "listenserver, l",
+					Name:  "listenremote, l",
 					Usage: "listen address and server address, like '0.0.0.0:1080 1.2.3.4:1080'",
 				},
 				cli.IntFlag{
@@ -591,7 +753,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				if len(c.StringSlice("listenserver")) == 0 {
+				if len(c.StringSlice("listenremote")) == 0 {
 					cli.ShowCommandHelp(c, "relays")
 					return nil
 				}
@@ -600,10 +762,10 @@ func main() {
 				}
 				errch := make(chan error)
 				go func() {
-					for _, v := range c.StringSlice("listenserver") {
+					for _, v := range c.StringSlice("listenremote") {
 						ss := strings.Split(v, " ")
 						if len(ss) != 2 {
-							errch <- errors.New("Invalid listenserver")
+							errch <- errors.New("Invalid listenremote")
 							return
 						}
 						go func() {
@@ -672,6 +834,27 @@ func main() {
 					enableDebug()
 				}
 				return brook.RunSocks5ToHTTP(c.String("listen"), c.String("socks5"), c.Int("timeout"), c.Int("deadline"))
+			},
+		},
+		cli.Command{
+			Name:  "systemproxy",
+			Usage: "Set system proxy with pac url, or remove, only works on MacOS/Windows",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "url, u",
+					Usage: "Pac address: like: http://127.0.0.1/pac",
+				},
+				cli.BoolFlag{
+					Name:  "remove, r",
+					Usage: "Remove pac url from system proxy",
+				},
+			},
+			Action: func(c *cli.Context) error {
+				if !c.Bool("remove") && c.String("url") == "" {
+					cli.ShowCommandHelp(c, "systemproxy")
+					return nil
+				}
+				return brook.RunSystemProxy(c.Bool("remove"), c.String("url"))
 			},
 		},
 	}

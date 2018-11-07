@@ -1,5 +1,9 @@
 package brook
 
+import (
+	"github.com/txthinking/brook/sysproxy"
+)
+
 // RunServer used to make a new Server and start to listen
 func RunServer(address, password string, tcpTimeout, tcpDeadline, udpDeadline int) error {
 	s, err := NewServer(address, password, tcpTimeout, tcpDeadline, udpDeadline)
@@ -15,7 +19,7 @@ func RunClient(address, ip, server, password string, tcpTimeout, tcpDeadline, ud
 	if err != nil {
 		return err
 	}
-	return c.ListenAndServe(nil)
+	return c.ListenAndServe()
 }
 
 // RunClientAsHTTP used to make a new Client and start a http proxy to listen
@@ -24,7 +28,16 @@ func RunClientAsHTTP(address, ip, server, password string, tcpTimeout, tcpDeadli
 	if err != nil {
 		return err
 	}
-	return c.ListenAndServeHTTP(nil)
+	return c.ListenAndServeHTTP()
+}
+
+// RunTunnel used to start a tunnel
+func RunTunnel(address, to, server, password string, tcpTimeout, tcpDeadline, udpDeadline int) error {
+	c, err := NewTunnel(address, to, server, password, tcpTimeout, tcpDeadline, udpDeadline)
+	if err != nil {
+		return err
+	}
+	return c.ListenAndServe()
 }
 
 // RunStreamServer used to make a new StreamServer and start to listen
@@ -42,7 +55,7 @@ func RunStreamClient(address, ip, server, password string, tcpTimeout, tcpDeadli
 	if err != nil {
 		return err
 	}
-	return c.ListenAndServe(nil)
+	return c.ListenAndServe()
 }
 
 // RunClientAsHTTP used to make a new StreamClient and start a http proxy to listen
@@ -51,7 +64,7 @@ func RunStreamClientAsHTTP(address, ip, server, password string, tcpTimeout, tcp
 	if err != nil {
 		return err
 	}
-	return c.ListenAndServeHTTP(nil)
+	return c.ListenAndServeHTTP()
 }
 
 // RunSSServer used to make a new Server and start to listen
@@ -69,7 +82,7 @@ func RunSSClient(address, ip, server, password string, tcpTimeout, tcpDeadline, 
 	if err != nil {
 		return err
 	}
-	return c.ListenAndServe(nil)
+	return c.ListenAndServe()
 }
 
 // RunSSClientAsHTTP used to make a new Client and start a http proxy to listen
@@ -78,7 +91,7 @@ func RunSSClientAsHTTP(address, ip, server, password string, tcpTimeout, tcpDead
 	if err != nil {
 		return err
 	}
-	return c.ListenAndServeHTTP(nil)
+	return c.ListenAndServeHTTP()
 }
 
 // RunRelay used to make a new Relay and start to listen
@@ -105,5 +118,28 @@ func RunSocks5ToHTTP(address, socks5 string, timeout, deadline int) error {
 	if err != nil {
 		return err
 	}
-	return s.ListenAndServe(nil)
+	return s.ListenAndServe()
+}
+
+// RunSystemProxy used to set/remove system proxy
+func RunSystemProxy(remove bool, pac string) error {
+	if remove {
+		if err := sysproxy.TurnOffSystemProxy(); err != nil {
+			return err
+		}
+		return nil
+	}
+	if err := sysproxy.TurnOnSystemProxy(pac); err != nil {
+		return err
+	}
+	return nil
+}
+
+// RunVPN used to make a new VPN and start
+func RunVPN(address, server, password string, tcpTimeout, tcpDeadline, udpDeadline, udpSessionTime int, tunDevice, tunIP, tunGateway, tunMask, defaultGateway string) error {
+	v, err := NewVPN(address, server, password, tcpTimeout, tcpDeadline, udpDeadline, udpSessionTime, tunDevice, tunIP, tunGateway, tunMask, defaultGateway)
+	if err != nil {
+		return err
+	}
+	return v.ListenAndServe()
 }
