@@ -20,6 +20,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -30,6 +31,7 @@ import (
 
 type Logger struct {
 	F    *os.File
+	File string
 	Lock *sync.Mutex
 	Tags map[string]string
 }
@@ -42,11 +44,11 @@ func NewLogger(tags map[string]string, file string) (*Logger, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Logger{F: f, Tags: tags, Lock: &sync.Mutex{}}, nil
+	return &Logger{F: f, File: file, Tags: tags, Lock: &sync.Mutex{}}, nil
 }
 
 func (p *Logger) Close() error {
-	if p.F == nil {
+	if p.Lock == nil {
 		return nil
 	}
 	p.Lock.Lock()
@@ -54,7 +56,25 @@ func (p *Logger) Close() error {
 	return p.F.Close()
 }
 
+func (p *Logger) Reset() error {
+	if p.Lock == nil {
+		return nil
+	}
+	p.Lock.Lock()
+	defer p.Lock.Unlock()
+	err := p.F.Close()
+	if err != nil {
+		return err
+	}
+	p.F, err = os.OpenFile(p.File, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (p *Logger) TouchBrook() {
+	go p.WatchReset()
 	brook.Log = func(err error) {
 		if _, ok := err.(brook.Error); !ok {
 			err = brook.Error{"error": err.Error()}
@@ -63,7 +83,7 @@ func (p *Logger) TouchBrook() {
 		for k, v := range p.Tags {
 			err.(brook.Error)[k] = v
 		}
-		if p.F == nil {
+		if p.Lock == nil {
 			fmt.Println(err)
 			return
 		}
@@ -76,17 +96,17 @@ func (p *Logger) TouchBrook() {
 	}
 	f := brook.ServerGate
 	brook.ServerGate = func(ex brook.Exchanger) (brook.Exchanger, error) {
-		brook.Log(brook.Error{"network": ex.Network(), "from": ex.Src(), "dst": ex.Dst()})
+		brook.Log(brook.Error{"network": ex.Network(), "from": ex.Src(), "dst": strings.ToLower(ex.Dst())})
 		return f(ex)
 	}
 	f1 := brook.ClientGate
 	brook.ClientGate = func(ex brook.Exchanger) (brook.Exchanger, error) {
-		brook.Log(brook.Error{"network": ex.Network(), "from": ex.Src(), "dst": ex.Dst()})
+		brook.Log(brook.Error{"network": ex.Network(), "from": ex.Src(), "dst": strings.ToLower(ex.Dst())})
 		return f1(ex)
 	}
 	f2 := brook.DNSGate
 	brook.DNSGate = func(addr *net.UDPAddr, m *dns.Msg, l1 *net.UDPConn) (bool, error) {
-		brook.Log(brook.Error{"from": addr.String(), "dns": dns.Type(m.Question[0].Qtype).String(), "domain": m.Question[0].Name[0 : len(m.Question[0].Name)-1]})
+		brook.Log(brook.Error{"from": addr.String(), "dns": dns.Type(m.Question[0].Qtype).String(), "domain": strings.ToLower(m.Question[0].Name[0 : len(m.Question[0].Name)-1])})
 		return f2(addr, m, l1)
 	}
 	f4 := brook.DOHGate
@@ -95,7 +115,7 @@ func (p *Logger) TouchBrook() {
 		if r.Header.Get("X-Forwarded-For") != "" {
 			s = r.Header.Get("X-Forwarded-For")
 		}
-		brook.Log(brook.Error{"from": s, "dns": dns.Type(m.Question[0].Qtype).String(), "domain": m.Question[0].Name[0 : len(m.Question[0].Name)-1]})
+		brook.Log(brook.Error{"from": s, "dns": dns.Type(m.Question[0].Qtype).String(), "domain": strings.ToLower(m.Question[0].Name[0 : len(m.Question[0].Name)-1])})
 		return f4(m, w, r)
 	}
 	f3 := brook.DHCPServerGate
